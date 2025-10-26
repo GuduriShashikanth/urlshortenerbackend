@@ -43,7 +43,7 @@ app.post("/shorten", async (req, res) => {
     await newUrl.save();
 
     res.json({ shortUrl });
-  } catch (err: any) {
+  } catch (err) {
     console.error("Error in /shorten:", err);
     res.status(500).json({ error: err.message || "Server error" });
   }
@@ -56,7 +56,7 @@ app.get("/:shortUrl", async (req, res) => {
     const url = await Url.findOne({ shortUrl });
     if (!url) return res.status(404).json({ error: "URL not found" });
     res.redirect(url.originalUrl);
-  } catch (err: any) {
+  } catch (err) {
     console.error("Error in redirect:", err);
     res.status(500).json({ error: err.message || "Server error" });
   }
