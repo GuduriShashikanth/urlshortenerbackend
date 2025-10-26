@@ -12,7 +12,7 @@ app.use(express.json());
 // MongoDB connection
 mongoose.connect(process.env.MONGO_URI)
   .then(() => console.log("✅ MongoDB connected"))
-  .catch(err => console.error("❌ DB connection error:", err));
+  .catch(err => console.log("❌ DB connection error:", err));
 
 // Schema
 const urlSchema = new mongoose.Schema({
@@ -21,47 +21,39 @@ const urlSchema = new mongoose.Schema({
 });
 const Url = mongoose.model("Url", urlSchema);
 
-// Route: shorten URL
+// Shorten URL
 app.post("/shorten", async (req, res) => {
   try {
     const { originalUrl } = req.body;
     if (!originalUrl) return res.status(400).json({ error: "Original URL required" });
 
-    // Return existing short URL if already stored
+    // Check if already exists
     const existing = await Url.findOne({ originalUrl });
     if (existing) return res.json({ shortUrl: existing.shortUrl });
 
-    // Ensure unique short URL
-    let shortUrl;
-    let exists;
-    do {
-      shortUrl = nanoid(8);
-      exists = await Url.findOne({ shortUrl });
-    } while (exists);
-
+    const shortUrl = nanoid(8);
     const newUrl = new Url({ originalUrl, shortUrl });
     await newUrl.save();
 
     res.json({ shortUrl });
   } catch (err) {
-    console.error("Error in /shorten:", err);
-    res.status(500).json({ error: err.message || "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// Route: redirect
+// Redirect route
 app.get("/:shortUrl", async (req, res) => {
   try {
     const { shortUrl } = req.params;
     const url = await Url.findOne({ shortUrl });
-    if (!url) return res.status(404).json({ error: "URL not found" });
-    res.redirect(url.originalUrl);
+    if (!url) return res.status(404).send("URL not found");
+
+    // Redirect to original URL
+    res.redirect(url.originalUrl.startsWith("http") ? url.originalUrl : `https://${url.originalUrl}`);
   } catch (err) {
-    console.error("Error in redirect:", err);
-    res.status(500).json({ error: err.message || "Server error" });
+    res.status(500).json({ error: "Server error" });
   }
 });
 
-// Start server
 const PORT = process.env.PORT || 5000;
 app.listen(PORT, () => console.log(`Server running on port ${PORT}`));
